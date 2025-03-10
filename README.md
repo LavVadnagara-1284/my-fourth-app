@@ -1,3 +1,131 @@
+# My Fourth App
+
+A **NestJS API** that demonstrates the use of **DTOs, Pipes, and Validation** in handling book-related data. This project uses **class-validator** for input validation and **custom pipes** for request transformation.
+
+## Features
+- **Book Retrieval**: Fetch a book by its ID.
+- **Book Addition**: Validate and add a book using **DTOs** and **Validation Pipes**.
+- **Custom Pipe**: Implements a NestJS **Pipe** for request validation and transformation.
+- **Strong Type Safety**: Uses **TypeScript** for robust and maintainable code.
+
+## Installation
+
+### Clone the repository:
+   ```sh
+   git clone https://github.com/your-username/my-fourth-app.git
+   cd my-fourth-app
+   ```
+
+## API Endpoints
+
+### Book Endpoints
+| Method | Endpoint      | Description                         |
+| ------ | ------------ | ----------------------------------- |
+| GET    | `/book/:id`  | Get book by ID (validates as `number`) |
+| POST   | `/book/add`  | Add a book (validates `id` and `name`) |
+
+## Code Flow
+
+1. **BookController** handles incoming HTTP requests.
+   - `@Get('/:id')` → Fetches a book by ID (validated using `ParseIntPipe`).
+   - `@Post('/add')` → Adds a new book (validated using `ValidationPipe`).
+
+2. **BookDto (Data Transfer Object)** ensures the request body has the correct format.
+   - `id` must be a **number**.
+   - `name` must be a **string**.
+
+3. **BookPipe (Custom Pipe)** applies additional validation.
+   - Uses **class-transformer** to convert raw request data into a class instance.
+   - Uses **class-validator** to check if the data meets requirements.
+   - Throws a **BadRequestException** if validation fails.
+
+## Code Explanation
+
+### 1. Book Controller (`book.controller.ts`)
+Handles **HTTP requests** for the `/book` endpoint.
+```typescript
+import { Body, Controller, Get, Param, ParseIntPipe, Post, ValidationPipe } from "@nestjs/common";
+import { BookDto } from "./dto/book.dto";
+
+@Controller('book')
+export class BookController {
+    @Get('/:id')
+    getBookById(@Param('id', ParseIntPipe) id: number): string {
+        console.log(id, typeof (id));
+        return `Book with id`;
+    }
+
+    @Post('/add')
+    addBook(@Body(new ValidationPipe()) book: BookDto): string {
+        return 'Book added';
+    }
+}
+```
+- `@Get('/:id')` uses `ParseIntPipe` to ensure `id` is a number.
+- `@Post('/add')` applies `ValidationPipe` to validate input.
+
+### 2. Book DTO (`book.dto.ts`)
+Defines **data structure** for books.
+```typescript
+import { IsNumber, IsString } from 'class-validator';
+
+export class BookDto {
+    @IsNumber()
+    id: number;
+
+    @IsString()
+    name: string;
+}
+```
+- `@IsNumber()` ensures `id` is a number.
+- `@IsString()` ensures `name` is a string.
+
+### 3. Custom Book Pipe (`book.pipe.ts`)
+Validates and transforms request data.
+```typescript
+import { ArgumentMetadata, BadRequestException, PipeTransform } from "@nestjs/common";
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { BookDto } from "../dto/book.dto";
+
+export class BookPipe implements PipeTransform {
+    async transform(value: any, metadata: ArgumentMetadata): Promise<any> {
+        const bookClass = plainToInstance(BookDto, value);
+
+        const errors = await validate(bookClass);
+        if (errors.length > 0) {
+            throw new BadRequestException('Validation failed', JSON.stringify(errors));
+        }
+
+        console.log(value, typeof (value));
+        return value;
+    }
+}
+```
+- Uses `plainToInstance` to convert raw request data to `BookDto`.
+- Uses `validate` to check constraints (`id: number`, `name: string`).
+- Throws `BadRequestException` if validation fails.
+
+### 4. Book Module (`book.module.ts`)
+Registers the **Book Controller**.
+```typescript
+import { Module } from '@nestjs/common';
+import { BookController } from './book.controller';
+
+@Module({
+  controllers: [BookController],
+  providers: [],
+})
+export class BookModule {}
+```
+
+## Technologies Used
+- **NestJS** - Framework for scalable Node.js applications.
+- **TypeScript** - Strongly typed language for JavaScript.
+- **Class-validator** - Validates request payloads.
+- **Class-transformer** - Converts plain objects into class instances.
+- **Pipes** - Custom transformation and validation.
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
